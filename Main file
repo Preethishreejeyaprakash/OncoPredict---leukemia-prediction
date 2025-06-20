@@ -1,0 +1,408 @@
+# ----------------- IMPORT PACKAGES ------------------------
+
+import tensorflow as tf
+from tensorflow.keras import models, layers
+import matplotlib
+import matplotlib.pyplot as plt 
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tkinter.filedialog import askopenfilename
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
+import cv2
+import matplotlib.image as mpimg
+
+
+
+# ------------------------- READ INPUT IMAGE -------------------------
+
+
+filename = askopenfilename()
+img = mpimg.imread(filename)
+plt.imshow(img)
+
+plt.axis ('off')
+# plt.savefig("Ori.png")
+plt.title('Original Image')
+
+
+
+# ------------------------- PREPROCESS -------------------------
+
+#==== RESIZE IMAGE ====
+
+resized_image = cv2.resize(img,(300,300))
+img_resize_orig = cv2.resize(img,((50, 50)))
+
+fig = plt.figure()
+plt.title('RESIZED IMAGE')
+plt.imshow(resized_image)
+plt.axis ('off')
+plt.show()
+   
+
+#==== GRAYSCALE IMAGE ====
+
+
+try:            
+    gray1 = cv2.cvtColor(img_resize_orig, cv2.COLOR_BGR2GRAY)
+    
+except:
+    gray1 = img_resize_orig
+   
+fig = plt.figure()
+plt.title('GRAY SCALE IMAGE')
+plt.imshow(gray1)
+plt.axis ('off')
+plt.show()
+
+
+
+# ========= IMAGE SPLITTING ============
+
+import os 
+
+from sklearn.model_selection import train_test_split
+  
+data_1 = os.listdir('Data/Benign/')
+ 
+data_2 = os.listdir('Data/Early/')
+ 
+data_3= os.listdir('Data/Pre/')
+ 
+data_4 = os.listdir('Data/Pro/')
+ 
+ 
+
+         
+        
+import numpy as np
+dot1= []
+labels1 = [] 
+for img11 in data_1:
+    try:
+    # print(img)
+        img_1 = mpimg.imread('Data/Benign//' + "/" + img11)
+        img_1 = cv2.resize(img_1,((50, 50)))
+    
+    
+        try:            
+            gray = cv2.cvtColor(img_1, cv2.COLOR_BGR2GRAY)
+            
+        except:
+            gray = img_1
+    
+        
+        dot1.append(np.array(gray))
+        labels1.append(1)
+    except:
+        None
+ 
+for img11 in data_2:
+    try:
+    # print(img)
+        img_1 = mpimg.imread('Data/Early//' + "/" + img11)
+        img_1 = cv2.resize(img_1,((50, 50)))
+    
+    
+        try:            
+            gray = cv2.cvtColor(img_1, cv2.COLOR_BGR2GRAY)
+            
+        except:
+            gray = img_1
+    
+        
+        dot1.append(np.array(gray))
+        labels1.append(2)
+    except:
+        None 
+ 
+for img11 in data_3:
+    try:
+    # print(img)
+        img_1 = mpimg.imread('Data/Pre//' + "/" + img11)
+        img_1 = cv2.resize(img_1,((50, 50)))
+    
+    
+        try:            
+            gray = cv2.cvtColor(img_1, cv2.COLOR_BGR2GRAY)
+            
+        except:
+            gray = img_1
+    
+        
+        dot1.append(np.array(gray))
+        labels1.append(3)
+ 
+    except:
+        None 
+for img11 in data_4:
+    try:
+    # print(img)
+        img_1 = mpimg.imread('Data/Pro//' + "/" + img11)
+        img_1 = cv2.resize(img_1,((50, 50)))
+    
+    
+        try:            
+            gray = cv2.cvtColor(img_1, cv2.COLOR_BGR2GRAY)
+            
+        except:
+            gray = img_1
+    
+        
+        dot1.append(np.array(gray))
+        labels1.append(4)
+    except:
+        None 
+
+ 
+x_train, x_test, y_train, y_test = train_test_split(dot1,labels1,test_size = 0.2, random_state = 101)
+
+
+print("------------------------------------------------------------")
+print(" Image Splitting")
+print("------------------------------------------------------------")
+print()
+
+print("The Total of Images       =",len(dot1))
+print("The Total of Train Images =",len(x_train))
+print("The Total of Test Images  =",len(x_test))
+
+
+
+
+
+
+# ------------------------- FEATURE EXTRACTION -------------------------
+
+# --- DIMENSION EXPANSION
+
+
+from keras.utils import to_categorical
+
+
+y_train1=np.array(y_train)
+y_test1=np.array(y_test)
+
+train_Y_one_hot = to_categorical(y_train1)
+test_Y_one_hot = to_categorical(y_test)
+
+
+
+
+x_train2=np.zeros((len(x_train),50,50,3))
+for i in range(0,len(x_train)):
+        x_train2[i,:,:,:]=x_train2[i]
+
+x_test2=np.zeros((len(x_test),50,50,3))
+for i in range(0,len(x_test)):
+        x_test2[i,:,:,:]=x_test2[i]
+
+
+
+print("-------------------------------------")
+print(" Feature Extraction - CNN Model")
+print("--------------------------------------")
+print()
+
+# ------------------------- CNN MODEL -------------------------
+
+from tensorflow.keras import layers, models
+
+# Define CNN Model
+model = models.Sequential()
+
+# Add the first convolutional layer with max pooling
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(50, 50, 3)))  # 50x50 image with 3 channels
+model.add(layers.MaxPooling2D((2, 2)))
+
+# Add a second convolutional layer with max pooling
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+
+# Add a third convolutional layer with max pooling
+model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+
+# Flatten the output of the last convolutional layer
+model.add(layers.Flatten())
+
+# Add a fully connected (dense) layer
+model.add(layers.Dense(128, activation='relu'))
+
+# Output layer (softmax activation for multi-class classification)
+model.add(layers.Dense(5, activation='softmax'))  # 4 classes: Benign, Early, Pre, Pro
+
+# Compile the model
+model.compile(optimizer='adam', loss='categorical_crossentropy')
+
+# Summary of the model
+model.summary()
+
+
+history = model.fit(np.array(x_train2), train_Y_one_hot, epochs=10, batch_size=32, validation_data=(np.array(x_test2), test_Y_one_hot))
+
+
+# Evaluate the model
+test_loss = model.evaluate(np.array(x_test2), test_Y_one_hot)
+
+loss1 = test_loss
+
+
+acc_cnn = 100 - loss1
+
+print("1) Accuracy   = ", acc_cnn , '%')
+print()
+print("2) Error Rate = ", loss1 , '%')
+print()
+
+
+# Plot training history
+plt.figure(figsize=(8, 6))
+
+
+# Plot training & validation loss values
+# plt.subplot(1, 2, 2)
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend(['Train', 'Test'], loc='upper left')
+
+plt.tight_layout()
+plt.show()
+
+
+###################### VGG_ 19 
+
+print("-------------------------------------")
+print(" Classification - VGG-19 Model")
+print("--------------------------------------")
+print()
+
+
+from tensorflow.keras.applications import VGG19
+from tensorflow.keras import layers, models
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.vgg19 import preprocess_input
+import numpy as np
+
+# ------------------------- PREPROCESSING FOR VGG-19 -------------------------
+
+# Resize images to 224x224 as required by VGG-19 (ensure it's RGB format)
+x_train_vgg = np.zeros((len(x_train), 224, 224, 3))  # 224x224 image with 3 channels (RGB)
+x_test_vgg = np.zeros((len(x_test), 224, 224, 3))    # 224x224 image with 3 channels (RGB)
+
+# Resize and convert grayscale to RGB for each image
+for i in range(len(x_train)):
+    # Resize to 224x224 and convert grayscale to RGB
+    temp_img = cv2.resize(x_train[i], (224, 224))  # Resize to VGG-19's required size
+    x_train_vgg[i, :, :, :] = cv2.cvtColor(temp_img, cv2.COLOR_GRAY2RGB)  # Convert grayscale to RGB
+
+for i in range(len(x_test)):
+    # Resize to 224x224 and convert grayscale to RGB
+    temp_img = cv2.resize(x_test[i], (224, 224))  # Resize to VGG-19's required size
+    x_test_vgg[i, :, :, :] = cv2.cvtColor(temp_img, cv2.COLOR_GRAY2RGB)  # Convert grayscale to RGB
+
+# Preprocess images as per VGG-19 requirement (scaling to [-1, 1] based on mean RGB values)
+x_train_vgg = preprocess_input(x_train_vgg)
+x_test_vgg = preprocess_input(x_test_vgg)
+
+
+# ------------------------- LOAD VGG-19 MODEL -------------------------
+
+# Load the pre-trained VGG-19 model without the top (classification) layer.
+# This is because we'll add our custom classifier on top of it.
+base_model = VGG19(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+
+# Freeze the layers of the base model so we don't update their weights during training
+base_model.trainable = False
+
+# ------------------------- BUILD CUSTOM CLASSIFIER -------------------------
+# Add a few custom layers on top of VGG-19 for your classification task.
+
+model = models.Sequential()
+
+# Add the VGG-19 base model (features extractor part)
+model.add(base_model)
+
+# Add global average pooling to reduce the spatial dimensions
+model.add(layers.GlobalAveragePooling2D())
+
+# Add a fully connected (dense) layer for further processing
+model.add(layers.Dense(128, activation='relu'))
+
+# Output layer with 4 classes (Benign, Early, Pre, Pro)
+model.add(layers.Dense(5, activation='softmax'))  # 4 classes
+
+# Compile the model
+model.compile(optimizer='adam', loss='categorical_crossentropy')
+
+# Summary of the model
+model.summary()
+
+# ------------------------- TRAINING THE MODEL -------------------------
+
+# Train the model
+history = model.fit(x_train_vgg, train_Y_one_hot, epochs=2, batch_size=32, validation_data=(x_test_vgg, test_Y_one_hot))
+
+# ------------------------- EVALUATE THE MODEL -------------------------
+
+# Evaluate the model
+test_loss = model.evaluate(x_test_vgg, test_Y_one_hot)
+
+loss1 = test_loss
+
+
+acc_vgg = 100 - loss1
+
+print("1) Accuracy   = ", acc_vgg , '%')
+print()
+print("2) Error Rate = ", loss1 , '%')
+print()
+
+print("-------------------------------------")
+print(" Prediction")
+print("--------------------------------------")
+print()
+
+temp_data1  = []
+for ijk in range(0,len(dot1)):
+            # print(ijk)
+        temp_data = int(np.mean(dot1[ijk]) == np.mean(gray1))
+        temp_data1.append(temp_data)
+            
+temp_data1 =np.array(temp_data1)
+        
+zz = np.where(temp_data1==1)
+        
+if labels1[zz[0][0]] == 1:
+    
+    print("----------------------------------------")
+    print("Identified as  - Benign")
+    print("----------------------------------------")
+
+
+elif labels1[zz[0][0]] == 2:
+    
+    print("----------------------------------------")
+    print("Identified as  - Early")
+    print("----------------------------------------")
+    
+    
+
+elif labels1[zz[0][0]] == 3:
+    
+    print("----------------------------------------")
+    print("Identified as  - Pre-Leukemia")
+    print("----------------------------------------")
+        
+
+elif labels1[zz[0][0]] == 4:
+    
+    print("----------------------------------------")
+    print("Identified as  - Progressive Leukemia (Acute Leukemia)")
+    print("----------------------------------------")
